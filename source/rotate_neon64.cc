@@ -232,42 +232,246 @@ void TransposeUVWx8_NEON(const uint8_t* src,
         "v17", "v18", "v19", "v20", "v21", "v22", "v23", "v30", "v31");
 }
 
-// Transpose 32 bit values (ARGB)
-void Transpose4x4_32_NEON(const uint8_t* src,
+// Transpose 32 bit values (ARGB) in Nx4 tiles using ld4 with lane insertion
+// and lane stores for 1..3 remainder rows.
+void TransposeNx4_32_NEON(const uint8_t* src,
                           int src_stride,
                           uint8_t* dst,
                           int dst_stride,
                           int width) {
-  const uint8_t* src1 = src + src_stride;
-  const uint8_t* src2 = src1 + src_stride;
-  const uint8_t* src3 = src2 + src_stride;
-  uint8_t* dst1 = dst + dst_stride;
-  uint8_t* dst2 = dst1 + dst_stride;
-  uint8_t* dst3 = dst2 + dst_stride;
+  const ptrdiff_t s = src_stride;
+  const uint8_t* src1 = src + s;
+  const uint8_t* src2 = src1 + s;
+  const uint8_t* src3 = src2 + s;
+  const ptrdiff_t d = dst_stride;
+  uint8_t* dst1 = dst + d;
+  uint8_t* dst2 = dst1 + d;
+  uint8_t* dst3 = dst2 + d;
   asm volatile(
-      // Main loop transpose 4x4.  Read a column, write a row.
-      "1:          \n"
+      "subs        %w8, %w8, #4                    \n"
+      "b.lt        2f                              \n"
+
+      // Main loop transpose 4x4. Read a column, write a row.
+      "1:                                          \n"
       "ld4         {v0.s, v1.s, v2.s, v3.s}[0], [%0], %9 \n"
       "ld4         {v0.s, v1.s, v2.s, v3.s}[1], [%1], %9 \n"
       "ld4         {v0.s, v1.s, v2.s, v3.s}[2], [%2], %9 \n"
       "ld4         {v0.s, v1.s, v2.s, v3.s}[3], [%3], %9 \n"
-      "subs        %w8, %w8, #4                  \n"  // w -= 4
-      "st1         {v0.4s}, [%4], 16             \n"
-      "st1         {v1.4s}, [%5], 16             \n"
-      "st1         {v2.4s}, [%6], 16             \n"
-      "st1         {v3.4s}, [%7], 16             \n"
-      "b.gt        1b                            \n"
-      : "+r"(src),                      // %0
-        "+r"(src1),                     // %1
-        "+r"(src2),                     // %2
-        "+r"(src3),                     // %3
-        "+r"(dst),                      // %4
-        "+r"(dst1),                     // %5
-        "+r"(dst2),                     // %6
-        "+r"(dst3),                     // %7
-        "+r"(width)                     // %8
-      : "r"((ptrdiff_t)src_stride * 4)  // %9
+      "subs        %w8, %w8, #4                    \n"
+      "st1         {v0.4s}, [%4], 16               \n"
+      "st1         {v1.4s}, [%5], 16               \n"
+      "st1         {v2.4s}, [%6], 16               \n"
+      "st1         {v3.4s}, [%7], 16               \n"
+      "b.ge        1b                              \n"
+
+      "2:                                          \n"
+      "adds        %w8, %w8, #4                    \n"
+      "b.eq        5f                              \n"
+
+      // Remainder of 1, 2, or 3 source rows.
+      "ld4         {v0.s, v1.s, v2.s, v3.s}[0], [%0] \n"
+      "cmp         %w8, #2                         \n"
+      "b.lt        4f                              \n"
+      "ld4         {v0.s, v1.s, v2.s, v3.s}[1], [%1] \n"
+      "b.gt        3f                              \n"
+      "st1         {v0.d}[0], [%4]                 \n"
+      "st1         {v1.d}[0], [%5]                 \n"
+      "st1         {v2.d}[0], [%6]                 \n"
+      "st1         {v3.d}[0], [%7]                 \n"
+      "b           5f                              \n"
+
+      "3:                                          \n"
+      "ld4         {v0.s, v1.s, v2.s, v3.s}[2], [%2] \n"
+      "st1         {v0.d}[0], [%4], 8              \n"
+      "st1         {v1.d}[0], [%5], 8              \n"
+      "st1         {v2.d}[0], [%6], 8              \n"
+      "st1         {v3.d}[0], [%7], 8              \n"
+      "st1         {v0.s}[2], [%4]                 \n"
+      "st1         {v1.s}[2], [%5]                 \n"
+      "st1         {v2.s}[2], [%6]                 \n"
+      "st1         {v3.s}[2], [%7]                 \n"
+      "b           5f                              \n"
+
+      "4:                                          \n"
+      "st1         {v0.s}[0], [%4]                 \n"
+      "st1         {v1.s}[0], [%5]                 \n"
+      "st1         {v2.s}[0], [%6]                 \n"
+      "st1         {v3.s}[0], [%7]                 \n"
+      "5:                                          \n"
+      : "+r"(src),   // %0
+        "+r"(src1),  // %1
+        "+r"(src2),  // %2
+        "+r"(src3),  // %3
+        "+r"(dst),   // %4
+        "+r"(dst1),  // %5
+        "+r"(dst2),  // %6
+        "+r"(dst3),  // %7
+        "+r"(width)  // %8
+      : "r"(s * 4)   // %9
       : "memory", "cc", "v0", "v1", "v2", "v3");
+}
+
+void TransposeWxH_32_NEON(const uint8_t* src,
+                          int src_stride,
+                          uint8_t* dst,
+                          int dst_stride,
+                          int width,
+                          int height) {
+  const ptrdiff_t d = dst_stride;
+  while (width >= 4) {
+    TransposeNx4_32_NEON(src, src_stride, dst, dst_stride, height);
+    src += 16;
+    dst += 4 * d;
+    width -= 4;
+  }
+  if (width == 3) {
+    const ptrdiff_t s = src_stride;
+    const uint8_t* src1 = src + s;
+    const uint8_t* src2 = src1 + s;
+    const uint8_t* src3 = src2 + s;
+    uint8_t* dst1 = dst + d;
+    uint8_t* dst2 = dst1 + d;
+    asm volatile(
+        "subs        %w7, %w7, #4                    \n"
+        "b.lt        2f                              \n"
+        "1:                                          \n"
+        "ld3         {v0.s, v1.s, v2.s}[0], [%0], %8 \n"
+        "ld3         {v0.s, v1.s, v2.s}[1], [%1], %8 \n"
+        "ld3         {v0.s, v1.s, v2.s}[2], [%2], %8 \n"
+        "ld3         {v0.s, v1.s, v2.s}[3], [%3], %8 \n"
+        "subs        %w7, %w7, #4                    \n"
+        "st1         {v0.4s}, [%4], 16               \n"
+        "st1         {v1.4s}, [%5], 16               \n"
+        "st1         {v2.4s}, [%6], 16               \n"
+        "b.ge        1b                              \n"
+        "2:                                          \n"
+        "adds        %w7, %w7, #4                    \n"
+        "b.eq        5f                              \n"
+        "ld3         {v0.s, v1.s, v2.s}[0], [%0]     \n"
+        "cmp         %w7, #2                         \n"
+        "b.lt        4f                              \n"
+        "ld3         {v0.s, v1.s, v2.s}[1], [%1]     \n"
+        "b.gt        3f                              \n"
+        "st1         {v0.d}[0], [%4]                 \n"
+        "st1         {v1.d}[0], [%5]                 \n"
+        "st1         {v2.d}[0], [%6]                 \n"
+        "b           5f                              \n"
+        "3:                                          \n"
+        "ld3         {v0.s, v1.s, v2.s}[2], [%2]     \n"
+        "st1         {v0.d}[0], [%4], 8              \n"
+        "st1         {v1.d}[0], [%5], 8              \n"
+        "st1         {v2.d}[0], [%6], 8              \n"
+        "st1         {v0.s}[2], [%4]                 \n"
+        "st1         {v1.s}[2], [%5]                 \n"
+        "st1         {v2.s}[2], [%6]                 \n"
+        "b           5f                              \n"
+        "4:                                          \n"
+        "st1         {v0.s}[0], [%4]                 \n"
+        "st1         {v1.s}[0], [%5]                 \n"
+        "st1         {v2.s}[0], [%6]                 \n"
+        "5:                                          \n"
+        : "+r"(src),    // %0
+          "+r"(src1),   // %1
+          "+r"(src2),   // %2
+          "+r"(src3),   // %3
+          "+r"(dst),    // %4
+          "+r"(dst1),   // %5
+          "+r"(dst2),   // %6
+          "+r"(height)  // %7
+        : "r"(s * 4)    // %8
+        : "memory", "cc", "v0", "v1", "v2");
+  } else if (width == 2) {
+    const ptrdiff_t s = src_stride;
+    const uint8_t* src1 = src + s;
+    const uint8_t* src2 = src1 + s;
+    const uint8_t* src3 = src2 + s;
+    uint8_t* dst1 = dst + d;
+    asm volatile(
+        "subs        %w6, %w6, #4                    \n"
+        "b.lt        2f                              \n"
+        "1:                                          \n"
+        "ld2         {v0.s, v1.s}[0], [%0], %7       \n"
+        "ld2         {v0.s, v1.s}[1], [%1], %7       \n"
+        "ld2         {v0.s, v1.s}[2], [%2], %7       \n"
+        "ld2         {v0.s, v1.s}[3], [%3], %7       \n"
+        "subs        %w6, %w6, #4                    \n"
+        "st1         {v0.4s}, [%4], 16               \n"
+        "st1         {v1.4s}, [%5], 16               \n"
+        "b.ge        1b                              \n"
+        "2:                                          \n"
+        "adds        %w6, %w6, #4                    \n"
+        "b.eq        5f                              \n"
+        "ld2         {v0.s, v1.s}[0], [%0]           \n"
+        "cmp         %w6, #2                         \n"
+        "b.lt        4f                              \n"
+        "ld2         {v0.s, v1.s}[1], [%1]           \n"
+        "b.gt        3f                              \n"
+        "st1         {v0.d}[0], [%4]                 \n"
+        "st1         {v1.d}[0], [%5]                 \n"
+        "b           5f                              \n"
+        "3:                                          \n"
+        "ld2         {v0.s, v1.s}[2], [%2]           \n"
+        "st1         {v0.d}[0], [%4], 8              \n"
+        "st1         {v1.d}[0], [%5], 8              \n"
+        "st1         {v0.s}[2], [%4]                 \n"
+        "st1         {v1.s}[2], [%5]                 \n"
+        "b           5f                              \n"
+        "4:                                          \n"
+        "st1         {v0.s}[0], [%4]                 \n"
+        "st1         {v1.s}[0], [%5]                 \n"
+        "5:                                          \n"
+        : "+r"(src),    // %0
+          "+r"(src1),   // %1
+          "+r"(src2),   // %2
+          "+r"(src3),   // %3
+          "+r"(dst),    // %4
+          "+r"(dst1),   // %5
+          "+r"(height)  // %6
+        : "r"(s * 4)    // %7
+        : "memory", "cc", "v0", "v1");
+  } else if (width == 1) {
+    const ptrdiff_t s = src_stride;
+    const uint8_t* src1 = src + s;
+    const uint8_t* src2 = src1 + s;
+    const uint8_t* src3 = src2 + s;
+    asm volatile(
+        "subs        %w5, %w5, #4                    \n"
+        "b.lt        2f                              \n"
+        "1:                                          \n"
+        "ld1         {v0.s}[0], [%0], %6             \n"
+        "ld1         {v0.s}[1], [%1], %6             \n"
+        "ld1         {v0.s}[2], [%2], %6             \n"
+        "ld1         {v0.s}[3], [%3], %6             \n"
+        "subs        %w5, %w5, #4                    \n"
+        "st1         {v0.4s}, [%4], 16               \n"
+        "b.ge        1b                              \n"
+        "2:                                          \n"
+        "adds        %w5, %w5, #4                    \n"
+        "b.eq        5f                              \n"
+        "ld1         {v0.s}[0], [%0]                 \n"
+        "cmp         %w5, #2                         \n"
+        "b.lt        4f                              \n"
+        "ld1         {v0.s}[1], [%1]                 \n"
+        "b.gt        3f                              \n"
+        "st1         {v0.d}[0], [%4]                 \n"
+        "b           5f                              \n"
+        "3:                                          \n"
+        "ld1         {v0.s}[2], [%2]                 \n"
+        "st1         {v0.d}[0], [%4], 8              \n"
+        "st1         {v0.s}[2], [%4]                 \n"
+        "b           5f                              \n"
+        "4:                                          \n"
+        "st1         {v0.s}[0], [%4]                 \n"
+        "5:                                          \n"
+        : "+r"(src),    // %0
+          "+r"(src1),   // %1
+          "+r"(src2),   // %2
+          "+r"(src3),   // %3
+          "+r"(dst),    // %4
+          "+r"(height)  // %5
+        : "r"(s * 4)    // %6
+        : "memory", "cc", "v0");
+  }
 }
 
 #endif  // !defined(LIBYUV_DISABLE_NEON) && defined(__aarch64__)

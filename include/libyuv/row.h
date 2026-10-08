@@ -818,6 +818,7 @@ extern "C" {
 #define HAS_YUY2TOUV422ROW_LSX
 #define HAS_YUY2TOYROW_LSX
 #define HAS_ARGBTOYMATRIXROW_LSX
+#define HAS_COPYROW_LSX
 #define HAS_RGBTOYMATRIXROW_LSX
 #endif
 
@@ -846,6 +847,7 @@ extern "C" {
 #define HAS_ARGBTORGB565DITHERROW_LASX
 #define HAS_ARGBTORGB565ROW_LASX
 #define HAS_ARGBTOYMATRIXROW_LASX
+#define HAS_COPYROW_LASX
 #define HAS_I422ALPHATOARGBROW_LASX
 #define HAS_I422TOARGB1555ROW_LASX
 #define HAS_I422TOARGB4444ROW_LASX
@@ -884,6 +886,7 @@ extern "C" {
 #define HAS_ARGBEXTRACTALPHAROW_RVV
 #define HAS_ARGBMULTIPLYROW_RVV
 #define HAS_ARGBTOAR64ROW_RVV
+#define HAS_ARGBMIRRORROW_RVV
 #define HAS_ARGBTOUV444MATRIXROW_RVV
 #define HAS_ARGBTOUVMATRIXROW_RVV
 #define HAS_ARGBTOYMATRIXROW_RVV
@@ -2786,6 +2789,8 @@ void ARGBMirrorRow_SSE2(const uint8_t* src, uint8_t* dst, int width);
 void ARGBMirrorRow_NEON(const uint8_t* src_argb, uint8_t* dst_argb, int width);
 void ARGBMirrorRow_LSX(const uint8_t* src, uint8_t* dst, int width);
 void ARGBMirrorRow_LASX(const uint8_t* src, uint8_t* dst, int width);
+void ARGBMirrorRow_RVV(const uint8_t* src, uint8_t* dst, int width);
+void ARGBMirrorRow_WASMSIMD(const uint8_t* src, uint8_t* dst, int width);
 void ARGBMirrorRow_C(const uint8_t* src, uint8_t* dst, int width);
 void ARGBMirrorRow_Any_AVX2(const uint8_t* src_ptr,
                             uint8_t* dst_ptr,
@@ -3912,11 +3917,15 @@ void CopyRow_NEON(const uint8_t* src, uint8_t* dst, int width);
 void CopyRow_SVE2(const uint8_t* src, uint8_t* dst, int width);
 void CopyRow_SME(const uint8_t* src, uint8_t* dst, int width);
 void CopyRow_RVV(const uint8_t* src, uint8_t* dst, int count);
+void CopyRow_LSX(const uint8_t* src, uint8_t* dst, int width);
+void CopyRow_LASX(const uint8_t* src, uint8_t* dst, int width);
 void CopyRow_C(const uint8_t* src, uint8_t* dst, int count);
 void CopyRow_Any_SSE2(const uint8_t* src_ptr, uint8_t* dst_ptr, int width);
 void CopyRow_Any_AVX(const uint8_t* src_ptr, uint8_t* dst_ptr, int width);
 void CopyRow_Any_AVX512BW(const uint8_t* src_ptr, uint8_t* dst_ptr, int width);
 void CopyRow_Any_NEON(const uint8_t* src_ptr, uint8_t* dst_ptr, int width);
+void CopyRow_Any_LSX(const uint8_t* src_ptr, uint8_t* dst_ptr, int width);
+void CopyRow_Any_LASX(const uint8_t* src_ptr, uint8_t* dst_ptr, int width);
 
 void CopyRow_16_C(const uint16_t* src, uint16_t* dst, int count);
 

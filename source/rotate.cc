@@ -286,6 +286,16 @@ void RotatePlane180(const uint8_t* src,
     CopyRow = CopyRow_RVV;
   }
 #endif
+#if defined(HAS_COPYROW_LSX)
+  if (TestCpuFlag(kCpuHasLSX)) {
+    CopyRow = IS_ALIGNED(width, 32) ? CopyRow_LSX : CopyRow_Any_LSX;
+  }
+#endif
+#if defined(HAS_COPYROW_LASX)
+  if (TestCpuFlag(kCpuHasLASX)) {
+    CopyRow = IS_ALIGNED(width, 64) ? CopyRow_LASX : CopyRow_Any_LASX;
+  }
+#endif
 
   // Odd height will harmlessly mirror the middle row twice.
   for (y = 0; y < half_height; ++y) {

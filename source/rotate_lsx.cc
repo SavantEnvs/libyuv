@@ -212,6 +212,36 @@ void TransposeUVWx16_LSX(const uint8_t* src,
   }
 }
 
+void Transpose4x4_32_LSX(const uint8_t* src,
+                         int src_stride,
+                         uint8_t* dst,
+                         int dst_stride,
+                         int width) {
+  int x;
+  int len = width / 4;
+  ptrdiff_t src_stride2 = src_stride * 2;
+  ptrdiff_t src_stride3 = src_stride + src_stride2;
+  ptrdiff_t src_stride4 = src_stride * 4;
+  ptrdiff_t dst_stride2 = dst_stride * 2;
+  ptrdiff_t dst_stride3 = dst_stride + dst_stride2;
+  __m128i src0, src1, src2, src3;
+  __m128i dst0, dst1, dst2, dst3;
+
+  for (x = 0; x < len; x++) {
+    src0 = __lsx_vld(src, 0);
+    src1 = __lsx_vldx(src, src_stride);
+    src2 = __lsx_vldx(src, src_stride2);
+    src3 = __lsx_vldx(src, src_stride3);
+    LSX_TRANSPOSE4x4_W(src0, src1, src2, src3, dst0, dst1, dst2, dst3);
+    __lsx_vst(dst0, dst, 0);
+    __lsx_vstx(dst1, dst, dst_stride);
+    __lsx_vstx(dst2, dst, dst_stride2);
+    __lsx_vstx(dst3, dst, dst_stride3);
+    dst += 16;
+    src += src_stride4;
+  }
+}
+
 #ifdef __cplusplus
 }  // extern "C"
 }  // namespace libyuv

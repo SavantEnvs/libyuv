@@ -329,6 +329,20 @@ void ARGBMirrorRow_LSX(const uint8_t* src, uint8_t* dst, int width) {
   }
 }
 
+void CopyRow_LSX(const uint8_t* src, uint8_t* dst, int width) {
+  int x;
+  int len = width / 32;
+  __m128i src0, src1;
+
+  for (x = 0; x < len; x++) {
+    DUP2_ARG2(__lsx_vld, src, 0, src, 16, src0, src1);
+    __lsx_vst(src0, dst, 0);
+    __lsx_vst(src1, dst, 16);
+    src += 32;
+    dst += 32;
+  }
+}
+
 void I422ToYUY2Row_LSX(const uint8_t* src_y,
                        const uint8_t* src_u,
                        const uint8_t* src_v,

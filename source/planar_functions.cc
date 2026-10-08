@@ -95,6 +95,16 @@ void CopyPlane(const uint8_t* src_y,
     CopyRow = CopyRow_RVV;
   }
 #endif
+#if defined(HAS_COPYROW_LSX)
+  if (TestCpuFlag(kCpuHasLSX)) {
+    CopyRow = IS_ALIGNED(width, 32) ? CopyRow_LSX : CopyRow_Any_LSX;
+  }
+#endif
+#if defined(HAS_COPYROW_LASX)
+  if (TestCpuFlag(kCpuHasLASX)) {
+    CopyRow = IS_ALIGNED(width, 64) ? CopyRow_LASX : CopyRow_Any_LASX;
+  }
+#endif
 
   // Copy plane
   for (y = 0; y < height; ++y) {
@@ -2997,6 +3007,11 @@ int ARGBMirror(const uint8_t* src_argb,
     if (IS_ALIGNED(width, 4)) {
       ARGBMirrorRow = ARGBMirrorRow_WASMSIMD;
     }
+  }
+#endif
+#if defined(HAS_ARGBMIRRORROW_RVV)
+  if (TestCpuFlag(kCpuHasRVV)) {
+    ARGBMirrorRow = ARGBMirrorRow_RVV;
   }
 #endif
 

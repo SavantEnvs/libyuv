@@ -42,6 +42,7 @@ set ( ly_common_source_files
   ${ly_src_dir}/rotate_argb.cc
   ${ly_src_dir}/rotate_common.cc
   ${ly_src_dir}/rotate_gcc.cc
+  ${ly_src_dir}/rotate_rvv.cc
   ${ly_src_dir}/rotate_wasm.cc
   ${ly_src_dir}/rotate_win.cc
   ${ly_src_dir}/row_any.cc
@@ -114,6 +115,7 @@ if(NOT MSVC)
 
     # Enable AArch64 SVE kernels.
     add_library(${ly_lib_name}_sve OBJECT
+      ${ly_src_dir}/rotate_sve.cc
       ${ly_src_dir}/row_sve.cc)
     target_compile_options(${ly_lib_name}_sve PRIVATE -march=armv8.5-a+i8mm+sve2)
     list(APPEND ly_lib_parts $<TARGET_OBJECTS:${ly_lib_name}_sve>)
@@ -215,6 +217,7 @@ if(LOONGARCH64)
   endif()
   if(SUPPORTS_LASX)
     add_library(${ly_lib_name}_lasx OBJECT
+      ${ly_src_dir}/rotate_lasx.cc
       ${ly_src_dir}/row_lasx.cc)
     target_compile_options(${ly_lib_name}_lasx PRIVATE -mlasx)
     list(APPEND ly_lib_parts $<TARGET_OBJECTS:${ly_lib_name}_lasx>)

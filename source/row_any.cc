@@ -1046,6 +1046,12 @@ ANY11(CopyRow_Any_SSE2, CopyRow_SSE2, 0, 1, 1, 31)
 #ifdef HAS_COPYROW_NEON
 ANY11(CopyRow_Any_NEON, CopyRow_NEON, 0, 1, 1, 31)
 #endif
+#ifdef HAS_COPYROW_LSX
+ANY11(CopyRow_Any_LSX, CopyRow_LSX, 0, 1, 1, 31)
+#endif
+#ifdef HAS_COPYROW_LASX
+ANY11(CopyRow_Any_LASX, CopyRow_LASX, 0, 1, 1, 63)
+#endif
 #if defined(HAS_ARGBTORGB24ROW_SSSE3)
 ANY11(ARGBToRGB24Row_Any_SSSE3, ARGBToRGB24Row_SSSE3, 0, 4, 3, 15)
 ANY11(ARGBToRAWRow_Any_SSSE3, ARGBToRAWRow_SSSE3, 0, 4, 3, 15)

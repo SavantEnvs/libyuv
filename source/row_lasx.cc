@@ -289,6 +289,20 @@ void ARGBMirrorRow_LASX(const uint8_t* src, uint8_t* dst, int width) {
   }
 }
 
+void CopyRow_LASX(const uint8_t* src, uint8_t* dst, int width) {
+  int x;
+  int len = width / 64;
+  __m256i src0, src1;
+
+  for (x = 0; x < len; x++) {
+    DUP2_ARG2(__lasx_xvld, src, 0, src, 32, src0, src1);
+    __lasx_xvst(src0, dst, 0);
+    __lasx_xvst(src1, dst, 32);
+    src += 64;
+    dst += 64;
+  }
+}
+
 void I422ToYUY2Row_LASX(const uint8_t* src_y,
                         const uint8_t* src_u,
                         const uint8_t* src_v,

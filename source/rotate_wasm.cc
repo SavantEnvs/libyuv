@@ -201,6 +201,42 @@ void Transpose4x4_32_WASMSIMD(const uint8_t* src,
                               int width) {
   const ptrdiff_t s = src_stride;
   const ptrdiff_t d = dst_stride;
+  uint8_t* dst1 = dst + d;
+  uint8_t* dst2 = dst1 + d;
+  uint8_t* dst3 = dst2 + d;
+  while (width >= 8) {
+    v128_t r0 = wasm_v128_load(src);
+    v128_t r1 = wasm_v128_load(src + s);
+    v128_t r2 = wasm_v128_load(src + s * 2);
+    v128_t r3 = wasm_v128_load(src + s * 3);
+    src += s * 4;
+    v128_t r4 = wasm_v128_load(src);
+    v128_t r5 = wasm_v128_load(src + s);
+    v128_t r6 = wasm_v128_load(src + s * 2);
+    v128_t r7 = wasm_v128_load(src + s * 3);
+    src += s * 4;
+    v128_t a0 = ZIPLO32(r0, r1);
+    v128_t a1 = ZIPHI32(r0, r1);
+    v128_t a2 = ZIPLO32(r2, r3);
+    v128_t a3 = ZIPHI32(r2, r3);
+    v128_t b0 = ZIPLO32(r4, r5);
+    v128_t b1 = ZIPHI32(r4, r5);
+    v128_t b2 = ZIPLO32(r6, r7);
+    v128_t b3 = ZIPHI32(r6, r7);
+    wasm_v128_store(dst, ZIPLO64(a0, a2));
+    wasm_v128_store(dst1, ZIPHI64(a0, a2));
+    wasm_v128_store(dst2, ZIPLO64(a1, a3));
+    wasm_v128_store(dst3, ZIPHI64(a1, a3));
+    wasm_v128_store(dst + 16, ZIPLO64(b0, b2));
+    wasm_v128_store(dst1 + 16, ZIPHI64(b0, b2));
+    wasm_v128_store(dst2 + 16, ZIPLO64(b1, b3));
+    wasm_v128_store(dst3 + 16, ZIPHI64(b1, b3));
+    dst += 32;
+    dst1 += 32;
+    dst2 += 32;
+    dst3 += 32;
+    width -= 8;
+  }
   while (width > 0) {
     v128_t r0 = wasm_v128_load(src);
     v128_t r1 = wasm_v128_load(src + s);
@@ -211,11 +247,14 @@ void Transpose4x4_32_WASMSIMD(const uint8_t* src,
     v128_t a2 = ZIPLO32(r2, r3);
     v128_t a3 = ZIPHI32(r2, r3);
     wasm_v128_store(dst, ZIPLO64(a0, a2));
-    wasm_v128_store(dst + d, ZIPHI64(a0, a2));
-    wasm_v128_store(dst + d * 2, ZIPLO64(a1, a3));
-    wasm_v128_store(dst + d * 3, ZIPHI64(a1, a3));
+    wasm_v128_store(dst1, ZIPHI64(a0, a2));
+    wasm_v128_store(dst2, ZIPLO64(a1, a3));
+    wasm_v128_store(dst3, ZIPHI64(a1, a3));
     src += s * 4;
     dst += 16;
+    dst1 += 16;
+    dst2 += 16;
+    dst3 += 16;
     width -= 4;
   }
 }

@@ -206,6 +206,22 @@ void Transpose4x4_32_C(const uint8_t* src,
   }
 }
 
+void TransposeWxH_32_C(const uint8_t* src,
+                       int src_stride,
+                       uint8_t* dst,
+                       int dst_stride,
+                       int width,
+                       int height) {
+  int i;
+  for (i = 0; i < width; ++i) {
+    int j;
+    for (j = 0; j < height; ++j) {
+      Copy4(dst + (ptrdiff_t)i * dst_stride + j * 4,
+            src + (ptrdiff_t)j * src_stride + i * 4);
+    }
+  }
+}
+
 #ifdef __cplusplus
 }  // extern "C"
 }  // namespace libyuv

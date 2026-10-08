@@ -91,6 +91,37 @@ TUVANY(TransposeUVWx16_Any_WASMSIMD,
 #endif
 #undef TUVANY
 
+#define TANY32(NAMEANY, TPOS_SIMD, TPOS_C, MASK)                 \
+  void NAMEANY(const uint8_t* src, int src_stride, uint8_t* dst, \
+               int dst_stride, int width) {                      \
+    int r = width & MASK;                                        \
+    int n = width - r;                                           \
+    if (n > 0) {                                                 \
+      TPOS_SIMD(src, src_stride, dst, dst_stride, n);            \
+    }                                                            \
+    if (r > 0) {                                                 \
+      TPOS_C(src + (ptrdiff_t)n * src_stride, src_stride,        \
+             dst + (ptrdiff_t)n * 4, dst_stride, 4, r);          \
+    }                                                            \
+  }
+
+#ifdef HAS_TRANSPOSE4X4_32_SSE2
+TANY32(Transpose4x4_32_Any_SSE2, Transpose4x4_32_SSE2, TransposeWxH_32_C, 3)
+#endif
+#ifdef HAS_TRANSPOSE4X4_32_LSX
+TANY32(Transpose4x4_32_Any_LSX, Transpose4x4_32_LSX, TransposeWxH_32_C, 3)
+#endif
+#ifdef HAS_TRANSPOSE4X4_32_LASX
+TANY32(Transpose4x4_32_Any_LASX, Transpose4x4_32_LASX, TransposeWxH_32_C, 7)
+#endif
+#ifdef HAS_TRANSPOSE4X4_32_WASMSIMD
+TANY32(Transpose4x4_32_Any_WASMSIMD,
+       Transpose4x4_32_WASMSIMD,
+       TransposeWxH_32_C,
+       3)
+#endif
+#undef TANY32
+
 #ifdef __cplusplus
 }  // extern "C"
 }  // namespace libyuv

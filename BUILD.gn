@@ -250,7 +250,10 @@ if (libyuv_use_neon) {
 
 if (libyuv_use_sve) {
   static_library("libyuv_sve") {
-    sources = [ "source/row_sve.cc" ]
+    sources = [
+      "source/rotate_sve.cc",
+      "source/row_sve.cc",
+    ]
 
     deps = [ ":libyuv_internal" ]
 
@@ -288,6 +291,7 @@ if (libyuv_use_sme) {
 if (libyuv_use_rvv && !libyuv_disable_rvv) {
   static_library("libyuv_rvv") {
     sources = [
+      "source/rotate_rvv.cc",
       "source/row_rvv.cc",
       "source/scale_rvv.cc",
     ]
@@ -339,6 +343,7 @@ if (libyuv_use_lasx) {
   static_library("libyuv_lasx") {
     sources = [
       # LASX Source Files
+      "source/rotate_lasx.cc",
       "source/row_lasx.cc",
     ]
 

@@ -119,6 +119,20 @@ TEST_F(LibYUVRotateTest, ARGBRotate270_Opt) {
                  disable_cpu_flags_, benchmark_cpu_info_);
 }
 
+TEST_F(LibYUVRotateTest, ARGBRotate90_Odd) {
+  ARGBTestRotate(benchmark_width_ + 1, benchmark_height_ + 1,
+                 benchmark_height_ + 1, benchmark_width_ + 1, kRotate90,
+                 benchmark_iterations_, disable_cpu_flags_,
+                 benchmark_cpu_info_);
+}
+
+TEST_F(LibYUVRotateTest, ARGBRotate270_Odd) {
+  ARGBTestRotate(benchmark_width_ + 1, benchmark_height_ + 1,
+                 benchmark_height_ + 1, benchmark_width_ + 1, kRotate270,
+                 benchmark_iterations_, disable_cpu_flags_,
+                 benchmark_cpu_info_);
+}
+
 static void TestRotatePlane(int src_width,
                             int src_height,
                             int dst_width,
